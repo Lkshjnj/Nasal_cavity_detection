@@ -3,6 +3,12 @@ import dlib
 import numpy as np
 import os
 import csv
+import tkinter as tk
+from tkinter import ttk, filedialog
+from PIL import Image, ImageTk, ImageDraw
+import time
+import threading
+from typing import Dict, Any, Optional, Tuple
 
 # Load the predictor and face detector
 predictor = dlib.shape_predictor("D:\\projects\\ML\\gemini\\Nasal-Depth-Detection\\Final\\shape_predictor_68_face_landmarks.dat")

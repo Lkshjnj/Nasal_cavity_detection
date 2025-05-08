@@ -4,7 +4,7 @@ import numpy as np
 import math
 
 # Load the facial landmark predictor
-predictor = dlib.shape_predictor("D:\\projects\\ML\\gemini\\Nasal-Depth-Detection\\Final\\shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("C:\\Users\\Lakshya\\Desktop\\Nasal_cavity_detection\\Final\\shape_predictor_68_face_landmarks.dat")
 detector = dlib.get_frontal_face_detector()
 
 # Function to compute Euclidean distance

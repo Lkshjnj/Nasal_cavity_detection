@@ -1,3 +1,7 @@
+import cv2
+import dlib
+import numpy as np
+from csv import writer
 import tkinter as tk
 from tkinter import ttk, filedialog
 from PIL import Image, ImageTk, ImageDraw
@@ -5,6 +9,13 @@ import time
 import threading
 import os
 from typing import Dict, Any, Optional, Tuple
+import math
+
+# Load the predictor and face detector
+predictor = dlib.shape_predictor("C:\\Users\\Lakshya\\Desktop\\Nasal_cavity_detection\\Final\\shape_predictor_68_face_landmarks.dat")
+detector = dlib.get_frontal_face_detector()
+# csv_file = "D:\\projects\\ML\\gemini\\Nasal-Depth-Detection\\photos\\nasal.csv"
+# csv_summary_file = "D:\\projects\\ML\\gemini\\Nasal-Depth-Detection\\photos\\summary_report.csv"
 
 class NasalCavityDetectionApp:
     def __init__(self, root):
@@ -164,14 +175,15 @@ class NasalCavityDetectionApp:
         
         upload_label = tk.Label(
             self.upload_frame, 
-            text="Drag & Drop Image\nor Browse", 
+            text="CAPTURE IMAGE", 
             font=('Arial', 10), 
             bg="#eef2f7", 
             fg="#95a5a6"
         )
         upload_label.pack(expand=True)
         
-        self.upload_frame.bind("<Button-1>", self.browse_files)
+        # self.upload_frame.bind("<Button-1>", self.browse_files)
+        self.upload_frame.bind("<Button-1>",self._run_analysis)
         
         # Controls Section
         tk.Label(
@@ -212,10 +224,10 @@ class NasalCavityDetectionApp:
         )
         self.measurement_btn.pack(fill=tk.X, pady=(0, 10))
         
-        # Analyze Button
+        # Analyze Button (by video)
         self.analyze_btn = tk.Button(
             left_panel, 
-            text="Analyze", 
+            text="Live Analysis", 
             bg="#27ae60", 
             fg="white", 
             font=('Arial', 11, 'bold'),
@@ -223,10 +235,25 @@ class NasalCavityDetectionApp:
             padx=5,
             pady=8,
             cursor="hand2",
-            command=self.analyze_image,
-            state=tk.DISABLED
+            command=self.analyze_image
         )
         self.analyze_btn.pack(fill=tk.X, pady=(10, 0))
+
+        # Analyze Button 2 (by image)
+        # self.analyze_btn = tk.Button(
+        #     left_panel, 
+        #     text="Live Analysis", 
+        #     bg="#27ae60", 
+        #     fg="white", 
+        #     font=('Arial', 11, 'bold'),
+        #     bd=0,
+        #     padx=5,
+        #     pady=8,
+        #     cursor="hand2",
+        #     command=self.analyze_image_by_upload,
+        #     state=tk.DISABLED
+        # )
+        # self.analyze_btn.pack(fill=tk.X, pady=(10, 0))
     
     def create_content_area(self, parent):
         """Create the main content area with image display and results"""
@@ -436,19 +463,19 @@ class NasalCavityDetectionApp:
         """Update patient data state"""
         self.patient_data[field] = value
     
-    def browse_files(self, event=None):
-        """Open file dialog to select an image"""
-        file_path = filedialog.askopenfilename(
-            initialdir=os.getcwd(),
-            title="Select Image File",
-            filetypes=(
-                ("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"),
-                ("All files", "*.*")
-            )
-        )
+    # def browse_files(self, event=None):
+    #     """Open file dialog to select an image"""
+    #     file_path = filedialog.askopenfilename(
+    #         initialdir=os.getcwd(),
+    #         title="Select Image File",
+    #         filetypes=(
+    #             ("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"),
+    #             ("All files", "*.*")
+    #         )
+    #     )
         
-        if file_path:
-            self.load_image(file_path)
+    #     if file_path:
+    #         self.load_image(file_path)
     
     def load_image(self, file_path: str):
         """Load and display the selected image"""
@@ -659,10 +686,7 @@ class NasalCavityDetectionApp:
         self.display_image_with_landmarks()
     
     def analyze_image(self):
-        """Analyze the uploaded image"""
-        if not self.uploaded_image or self.is_analyzing:
-            return
-        
+        """Analyze the video""" 
         # Set analyzing state
         self.is_analyzing = True
         self.analyze_btn.config(text="Analyzing...", state=tk.DISABLED)
@@ -671,48 +695,68 @@ class NasalCavityDetectionApp:
         threading.Thread(target=self._run_analysis).start()
     
     def _run_analysis(self):
-        """Run image analysis in a separate thread"""
-        # Simulate processing delay
-        time.sleep(1.5)
-        
-        # Mock results - in a real app, this would come from actual image analysis
-        mock_results = {
-            "nasalDepthRatio": 0.78,
-            "eyeNoseDistance": 42.5,
-            "nasalWidth": 38.2,
-            "isNormalRange": True
-        }
-        
-        # Update results in the UI thread
-        self.root.after(0, lambda: self._update_results(mock_results))
-    
-    def _update_results(self, results):
-        """Update UI with analysis results"""
-        self.results = results
-        
-        # Update metrics values
-        self.nasal_depth_value.config(text=f"{results['nasalDepthRatio']:.2f}")
-        self.eye_nose_value.config(text=f"{results['eyeNoseDistance']:.1f} px")
-        self.nasal_width_value.config(text=f"{results['nasalWidth']:.1f} px")
-        
-        # Update assessment status
-        if results['isNormalRange']:
-            self.status_frame.config(bg="#d5f5e3")
-            self.status_label.config(bg="#d5f5e3", fg="#27ae60", text="Normal Range")
-        else:
-            self.status_frame.config(bg="#fadbd8")
-            self.status_label.config(bg="#fadbd8", fg="#e74c3c", text="Abnormal Range")
-        
-        # Hide no results label and show metrics
-        self.no_results_label.pack_forget()
-        self.metrics_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Reset analyzing state
-        self.is_analyzing = False
-        self.analyze_btn.config(text="Analyze", state=tk.NORMAL)
-        
-        # Redraw the image to ensure landmarks are shown
-        self.display_image_with_landmarks()
+        # Start webcam
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH,620)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+              break
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = detector(gray)
+
+            for face in faces:
+                landmarks = predictor(gray, face)
+
+                # Key points
+                left_eye = (landmarks.part(36).x, landmarks.part(36).y)
+                right_eye = (landmarks.part(45).x, landmarks.part(45).y)
+                left_eyebrow = (landmarks.part(17).x, landmarks.part(17).y)
+                right_eyebrow = (landmarks.part(26).x, landmarks.part(26).y)
+                nose = (landmarks.part(30).x, landmarks.part(30).y)
+
+                # Eye center
+                center_eyes = ((left_eye[0] + right_eye[0]) // 2, (left_eye[1] + right_eye[1]) // 2)
+                # Eyebrow center
+                center_brows = ((left_eyebrow[0] + right_eyebrow[0]) // 2, (left_eyebrow[1] + right_eyebrow[1]) // 2)
+                # Combined center (eyes + brows)
+                center_point = ((center_eyes[0] + center_brows[0]) // 2, (center_eyes[1] + center_brows[1]) // 2)
+
+                # Draw key points
+                cv2.circle(frame, center_point, 3, (0, 255, 255), -1)
+                cv2.circle(frame, nose, 3, (0, 0, 255), -1)
+                cv2.line(frame, center_point, nose, (255, 0, 0), 2)
+
+                # Compute distances
+                nasal_depth = abs(nose[1] - center_point[1])
+                eye_distance = euclidean(left_eye, right_eye)
+
+                # Show distances
+                cv2.putText(frame, f"Nasal Depth: {nasal_depth:.2f}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+                cv2.putText(frame, f"Eye Distance: {eye_distance:.2f}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+
+                # Determine anomaly based on relative proportion
+                # (nasal depth > 0.8 * eye distance) --> anomaly
+                if nasal_depth > 0.8 * eye_distance:
+                  status = "Anomaly Detected"
+                  color = (0, 0, 255)
+                else:
+                  status = "Healthy"
+                  color = (0, 255, 0)
+
+                cv2.putText(frame, status, (face.left(), face.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
+            cv2.imshow("Facial Analysis", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                 self.analyze_btn.config(state=tk.NORMAL,text="Live Analysis")
+                 break
+
+        cap.release()
+        cv2.destroyAllWindows()
+def euclidean(p1, p2):
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
 if __name__ == "__main__":
     root = tk.Tk()
