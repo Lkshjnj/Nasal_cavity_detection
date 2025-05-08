@@ -182,8 +182,8 @@ class NasalCavityDetectionApp:
         )
         upload_label.pack(expand=True)
         
-        # self.upload_frame.bind("<Button-1>", self.browse_files)
-        self.upload_frame.bind("<Button-1>",self._run_analysis)
+        self.upload_frame.bind("<Button-1>", self.browse_files)
+        # self.upload_frame.bind("<Button-1>",self._run_analysis)
         
         # Controls Section
         tk.Label(
@@ -240,21 +240,21 @@ class NasalCavityDetectionApp:
         self.analyze_btn.pack(fill=tk.X, pady=(10, 0))
 
         # Analyze Button 2 (by image)
-        # self.analyze_btn = tk.Button(
-        #     left_panel, 
-        #     text="Live Analysis", 
-        #     bg="#27ae60", 
-        #     fg="white", 
-        #     font=('Arial', 11, 'bold'),
-        #     bd=0,
-        #     padx=5,
-        #     pady=8,
-        #     cursor="hand2",
-        #     command=self.analyze_image_by_upload,
-        #     state=tk.DISABLED
-        # )
-        # self.analyze_btn.pack(fill=tk.X, pady=(10, 0))
-    
+        self.analyze_btn_2 = tk.Button(
+            left_panel, 
+            text="Analysis the Image", 
+            bg="#27ae60", 
+            fg="white", 
+            font=('Arial', 11, 'bold'),
+            bd=0,
+            padx=5,
+            pady=8,
+            cursor="hand2",
+            command=self.analyze_image,
+            state=tk.DISABLED
+        )
+        self.analyze_btn_2.pack(fill=tk.X, pady=(10, 0))
+                                                                
     def create_content_area(self, parent):
         """Create the main content area with image display and results"""
         content_frame = tk.Frame(parent, bg="#f5f7fa")
@@ -463,19 +463,19 @@ class NasalCavityDetectionApp:
         """Update patient data state"""
         self.patient_data[field] = value
     
-    # def browse_files(self, event=None):
-    #     """Open file dialog to select an image"""
-    #     file_path = filedialog.askopenfilename(
-    #         initialdir=os.getcwd(),
-    #         title="Select Image File",
-    #         filetypes=(
-    #             ("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"),
-    #             ("All files", "*.*")
-    #         )
-    #     )
+    def browse_files(self, event=None):
+        """Open file dialog to select an image"""
+        file_path = filedialog.askopenfilename(
+            initialdir=os.getcwd(),
+            title="Select Image File",
+            filetypes=(
+                ("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"),
+                ("All files", "*.*")
+            )
+        )
         
-    #     if file_path:
-    #         self.load_image(file_path)
+        if file_path:
+            self.load_image(file_path)
     
     def load_image(self, file_path: str):
         """Load and display the selected image"""
@@ -490,7 +490,7 @@ class NasalCavityDetectionApp:
             self.display_image_with_landmarks()
             
             # Enable the analyze button
-            self.analyze_btn.config(state=tk.NORMAL)
+            self.analyze_btn_2.config(state=tk.NORMAL)
             
         except Exception as e:
             print(f"Error loading image: {e}")
@@ -693,6 +693,7 @@ class NasalCavityDetectionApp:
         
         # Run analysis in a separate thread to avoid UI freezing
         threading.Thread(target=self._run_analysis).start()
+            
     
     def _run_analysis(self):
         # Start webcam
